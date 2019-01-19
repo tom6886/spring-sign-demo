@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        html, body, #editor {
+            margin: 0;
+            height: 100%;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #333;
+        }
+
+        textarea, #editor div {
+            display: inline-block;
+            width: 49%;
+            height: 100%;
+            vertical-align: top;
+            box-sizing: border-box;
+            padding: 0 20px;
+        }
+
+        textarea {
+            border: none;
+            border-right: 1px solid #ccc;
+            resize: none;
+            outline: none;
+            background-color: #f6f6f6;
+            font-size: 14px;
+            font-family: 'Monaco', courier, monospace;
+            padding: 20px;
+        }
+
+        code {
+            color: #f66;
+        }
+    </style>
+</head>
+<body>
+<div id="editor">
+    <textarea :value="input" readonly></textarea>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/stomp.js/2.3.3/stomp.js"></script>
+<script type="text/javascript">
+    new Vue({
+        el: '#editor',
+        created() {
+            var client = Stomp.client('ws://127.0.0.1:9098/sign/ws/websocket');
+            var _this = this;
+            client.heartbeat.outgoing = 5000;
+            client.heartbeat.incoming = 0;
+
+            _this.input += '连接服务器...\r\n';
+            client.connect({}, function (succ) {
+                console.log('client connect success:', succ);
+                _this.input += '连接成功...\r\n';
+
+                // 订阅广播
+                client.subscribe("/topic/signIn", function (message) {
+                    _this.input += ('有人签到：' + message.body + '\r\n');
+                });
+
+                client.subscribe("/topic/signOut", function (message) {
+                    _this.input += ('有人取消签到：' + message.body + '\r\n');
+                });
+            }, function (error) {
+                console.log('client connect error:', error);
+                _this.input += '连接断开...\r\n';
+            });
+        },
+        data: {
+            input: ''
+        },
+        computed: {},
+        methods: {}
+    })
+</script>
+</body>
+</html>
